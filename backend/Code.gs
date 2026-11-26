@@ -25,8 +25,8 @@
     unique(s.prices,x=>JSON.stringify([x.supplier,x.buyer,x.product]),'通路價格');
     let shipments=new Map();
     for(const a of s.shipments){
-      plainRecord(a,['id','date','delivery','supplier','buyer','kind','note','items','createdBy','voided'],'出貨');
-      if(!str(a.id)||!date(a.date)||!str(a.delivery,50)||!units.has(a.supplier)||!units.has(a.buyer)||a.supplier===a.buyer||!['買斷','寄售'].includes(a.kind)||typeof a.note!=='string'||a.note.length>MAX_NOTE||!Array.isArray(a.items)||!a.items.length||a.items.length>100||(a.voided!==undefined&&typeof a.voided!=='boolean')||(a.createdBy!==undefined&&!str(a.createdBy)))fail('出貨資料不正確');
+      plainRecord(a,['id','date','delivery','supplier','buyer','buyerTemporary','kind','note','items','createdBy','voided'],'出貨');
+      if(!str(a.id)||!date(a.date)||!str(a.delivery,50)||!units.has(a.supplier)||!str(a.buyer)||(!units.has(a.buyer)&&a.buyerTemporary!==true)||(a.buyerTemporary!==undefined&&typeof a.buyerTemporary!=='boolean')||a.supplier===a.buyer||!['買斷','寄售'].includes(a.kind)||typeof a.note!=='string'||a.note.length>MAX_NOTE||!Array.isArray(a.items)||!a.items.length||a.items.length>100||(a.voided!==undefined&&typeof a.voided!=='boolean')||(a.createdBy!==undefined&&!str(a.createdBy)))fail('出貨資料不正確');
       for(const i of a.items){plainRecord(i,['name','unit','qty','price'],'出貨明細');if(!products.has(i.name)||products.get(i.name).unit!==i.unit||!amount(i.qty)||!amount(i.price)||!Number.isSafeInteger(i.qty*i.price))fail('出貨商品、數量或價格不正確')}
       shipments.set(a.id,a);
     }
@@ -41,7 +41,7 @@
     let allocations=new Map();
     for(const p of s.payments){
       plainRecord(p,['id','date','amount','supplier','buyer','method','payer','allocations','createdBy','voided'],'收款');
-      if(!str(p.id)||!date(p.date)||!amount(p.amount)||!units.has(p.supplier)||!units.has(p.buyer)||p.supplier===p.buyer||!str(p.method,50)||typeof p.payer!=='string'||p.payer.length>MAX_NOTE||!Array.isArray(p.allocations)||!p.allocations.length||p.allocations.length>100||(p.voided!==undefined&&typeof p.voided!=='boolean')||(p.createdBy!==undefined&&!str(p.createdBy)))fail('收款資料不正確');
+      if(!str(p.id)||!date(p.date)||!amount(p.amount)||!units.has(p.supplier)||!str(p.buyer)||p.supplier===p.buyer||!str(p.method,50)||typeof p.payer!=='string'||p.payer.length>MAX_NOTE||!Array.isArray(p.allocations)||!p.allocations.length||p.allocations.length>100||(p.voided!==undefined&&typeof p.voided!=='boolean')||(p.createdBy!==undefined&&!str(p.createdBy)))fail('收款資料不正確');
       unique(p.allocations,x=>x.shipment,'收款分配');let total=0;
       for(const x of p.allocations){plainRecord(x,['shipment','amount'],'收款分配');let a=shipments.get(x.shipment);if(!a||!amount(x.amount)||a.supplier!==p.supplier||a.buyer!==p.buyer)fail('收款分配對象不正確');total+=x.amount;if(!p.voided){if(a.voided)fail('已作廢出貨單仍有收款');allocations.set(a.id,(allocations.get(a.id)||0)+x.amount)}}
       if(total!==p.amount)fail('收款分配合計不符');
